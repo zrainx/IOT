@@ -3,7 +3,8 @@
 | 版本 | 修改记录 |
 | - | - |
 | 0.5 | 初稿 |
-| 0.6 | 加入设备数据类型 |
+| 0.6 | 增加设备数据类型 |
+| 0.7 | 增加维测命令到公共参数中 |
 
 ## 简介
 
@@ -79,17 +80,17 @@
 | ----- | ------- | ----- | ------- |
 | MSG    | TYPE     | NUM  | for (i==0;i<NUM;i++) {ArgName; ArgLen; ArgValue}; |
 | 1字节   | 1字节   |  1字节 | 变长 NUM 字节 |
- 
+
 | 消息字 | 参数类型 | 参数个数 | 参数   |
 | ----- | ------- | ----- | ------- |
 | GET    | TYPE     | NUM  | for (i==0;i<NUM;i++) {ArgName; ArgValue}; |
 | 1字节   | 1字节   |  1字节 | 变长 NUM 字节 |
- 
+
 | 消息字 | 参数类型 | 参数个数 | 参数   |
 | ----- | ------- | ----- | ------- |
 | SET/RPT  | TYPE     | NUM  | for (i==0;i<NUM;i++) {ArgName; ArgLen; ArgValue}; |
 | 1字节   | 1字节   |  1字节 | 变长 NUM 字节 |
- 
+
 说明：
 1. 当消息字是GET时，参数没有长度，当消息字时SET时，参数带长度。
 
@@ -101,10 +102,10 @@
 | 设置 SET | 1字节 | 0x2  |
 | 上报 RPT | 1字节 | 0x3  |
 | ACK      | 1字节 | 0x4  |
- 
+
 #### 参数类型
 
- TYPE（设备类型）包括：
+ TYPE（参数类型）包括：
 
 | 参数类型                               | 类型 |
 | -------------------------------------- | ---- |
@@ -131,41 +132,86 @@
 | 智能门锁                               | 0x15 |
 | 透传设备                               | 0x16 |
 | ...                                    | 0xFE |
-| 公共                                   | 0xFF |
+| 公共类型                               | 0xFF |
 
 说明：
 
 FF表示公共参数，所有设备均有公共参数，公共参数包括：设备厂家名，自定义描述，软版本号，设备类型，维测参数（ToDo）。
 
-##### 查询 GET
+#### 参数类型
 
-| 参数 | 类型 | 功能       |
-| ---- | ---- | ---------- |
-| FAC  | 0x1  | 厂家名     |
-| DSP  | 0x2  | 自定义描述 |
-| SWV  | 0x3  | 软版本号   |
-| TYPE | 0x4  | 设备类型   |
+##### 公共类型
 
-##### 设置SET/上报 RPT
+| 参数    | 类型 | 功能         |
+| ------- | ---- | ------------ |
+| FAC     | 0x1  | 厂家名       |
+| DSP     | 0x2  | 自定义描述   |
+| SWV     | 0x3  | 软版本号     |
+| TYPE    | 0x4  | 设备类型     |
+| PING    | 0x5  | 心跳         |
+| RFPWR   | 0x6  | 发射功率     |
+| RSRP    | 0x7  | 接收信号强度 |
+| SNR     | 0x8  | 信噪比       |
+| CHANNEL | 0x9  | 信道选择     |
 
-| 参数 | 值   | 长度  | 功能   |
+说明：
+
+公共参数的数据格式根据消息字不同而不同，如果消息字是GET，则每个参数不带长度字段。如果消息字是SET或者RPT，则每个参数需要带长度字段，详见下表。
+
+###### 查询 GET
+
+| 参数 | 类型 |
+| ---- | ---- |
+| FAC  | 0x1  |
+| DSP  | 0x2  |
+| SWV  | 0x3  |
+| TYPE | 0x4  |
+| PING   | 0x5  |
+| RFPWR  | 0x6  |
+| RSRP   | 0x7  |
+| SNR    | 0x8  |
+| CHANNEL| 0x9 |
+
+###### 设置SET/上报 RPT
+
+| 参数 | 值   | 参数值长度 | 参数值类型 |
 | ---- | ---- | ----- | ------ |
 | FAC  | 0x1  | 1～32 | string |
 | DSP  | 0x2  | 1～32 | string |
 | SWV  | 0x3  | 1～32 | string |
 | TYPE | 0x4  | 1     | byte   |
+| PING   | 0x5  | 3 | byte |
+| RFPWR  | 0x6  | 1 | byte |
+| RSRP   | 0x7  | 1 | byte |
+| SNR    | 0x8  | 1 | byte |
+| CHANNEL| 0x9 |  1 | byte |
+###### 举例
 
-（TODO 维测 消息）
+设置并查询 FAC 和 SWV
 
-## 举例
+1. 0x02 0xFF 0x02 0x01 0x0D ASCII('FatoryName') 0x03 0x04 ASCII('2019')
+2. 0x04
+3. 0x01 0xFF 0x02 0x01 0x03
+4. 0x03 0xFF 0x02 0x01 0x0D ASCII('FatoryName') 0x03 0x04 ASCII('2019')
 
-![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1I27ODKJ1IS7DqLZ0qL51oIqmkoI-gz4lCJLLI20uFKp1HK38oCBHKuW8h1sg36c2buEZiZMcQEzmqe6PCFK41n5dca9gN0dGj0000)  
+含义如下图：
 
+![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1I27ODKJ2eS7DJC59mStHMC3HKK79BJ2x9BwhqIynDLL883WzJC55GCZ8mj5JY0ki1weMQOgNWwEoDQQGxgf504p0r1WMGOAr3QbuAqF40)  
 
-其他TYPE 详见  产品列表 
+设置并查询 TYPE
 
+1. 0x02 0xFF 0x01 0x04 0x01 0x10
+2. 0x04
+3. 0x01 0xFF 0x01 0x04
+4. 0x03 0xFF 0x01 0x04 0x01 0x10
 
+含义如下图：
 
+![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1I27ODKJ2eS7DJC5G8YGnm1L865OO6N61Pe2geUYi5HsTlJCtkg9enTGK5O3NT8JKl1UWQ0000)
+
+##### 其他设备类型
+
+ (TODO)参考[产品列表](https://github.com/zrainx/IOT/blob/master/%E4%BA%A7%E5%93%81%E5%88%97%E8%A1%A8.docx)
 
 
 
