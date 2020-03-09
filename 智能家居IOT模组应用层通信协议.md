@@ -8,6 +8,8 @@
 | 0.6 | 增加设备数据类型 |
 | 0.7 | 增加维测命令到公共参数中 |
 | 0.8 | 修改参数格式增加业务参数 |
+| 0.9 | 简化业务载合格式 |
+| 0.91 | 刷新了交互章节 |
 
 ## 简介
 
@@ -74,17 +76,15 @@
 
 业务载荷格式如下表：
 
-| 目的设备寻址模式 / 目的设备地址长度 | 源设备ID | 目的设备ID/描述 | 数据             |
-| ----------------------------------- | -------- | --------------- | ---------------- |
-| MODE bit7 ，  LEN ：MODE bit 6-0    | SRC[4]   | DST[LEN]        | DATA[245-LEN]    |
-| 1字节                               | 4字节    | 变长 0-128字节  | 变长 250-1-4-LEN |
+| 源设备ID | 目的设备ID | 数据           |
+| -------- | ---------- | -------------- |
+| SRC[4]   | DST[4]     | DATA[242]      |
+| 4字节    | 4字节      | 变长 250-8字节 |
 
 说明：
 
-1. 当MODE 比特位7 为0时，表示目的设备以ID寻址；当MODE 比特位7 为1时，表示目的设备以设备描述寻址，用于广播。
-2. LEN 占用MODE的第6到0bit，表示目的设备的地址长度。范围为0-128字节
 3. 设备ID 是IOT设备的唯一标识，要求设备在用一个接入网中必须保证唯一。
-4. 目的设备描述 用于广播寻址
+4. 当设备ID为 FFFFFFFF 时表示广播。
 
 
 
@@ -341,7 +341,12 @@
 
 #### 维测参数
 
-##### PING  0x5  心跳  
+| 功能字 | 功能类型                    | 参数长度 | 参数          |
+| ------ | --------------------------- | -------- | ------------- |
+| FUNC   | PING/RFPWR/RSRP/SNR/CHANNEL | NUM      | ARGS          |
+| 1字节  | 1字节                       | 1字节    | 变长 NUM 字节 |
+
+##### PING  0x5  心跳
 
 ##### RFPWR  0x6  发射功率  
 
@@ -351,29 +356,61 @@
 
 #####  CHANNEL  0x9  信道选择 
 
+##### attach 0xa 入网请求
+
+##### timer 定时器
+
+
+
 ## 交互
 
-设置并查询 FAC 和 SWV
+网关和模组间的交互分成两个模式：入网模式和业务模式，分别对应两个频点（入网频点和业务频点）。
 
-1. 0x02 0xFF 0x02 0x01 0x0D ASCII('FatoryName') 0x03 0x04 ASCII('2019')
-2. 0x04
-3. 0x01 0xFF 0x02 0x01 0x03
-4. 0x03 0xFF 0x02 0x01 0x0D ASCII('FatoryName') 0x03 0x04 ASCII('2019')
+### 入网模式
 
-含义如下图：
+模组在上电初始化后，或者心跳包定时器超时以后进入入网模式。模组在入网模式完成驻留流程，驻留成功后，模组依据网关分配的业务频点切换进入业务模式。
 
-![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1I27ODKJ2eS7DJC59mStHMC3HKK79BJ2x9BwhqIynDLL883WzJC55GCZ8mj5JY0ki1weMQOgNWwEoDQQGxgf504p0r1WMGOAr3QbuAqF40)  
+#### 驻留流程
 
-设置并查询 TYPE
+##### 正常流程
 
-1. 0x02 0xFF 0x01 0x04 0x01 0x10
-2. 0x04
-3. 0x01 0xFF 0x01 0x04
-4. 0x03 0xFF 0x01 0x04 0x01 0x10
+![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuVBBJqbLqBLJ24ujAaijKh1ICDGB2WXHS0m9SNJsK71GUDgwzFdUYK_sBtpPE9aBgWYe7ApDIa51mT7PMy41lo8ZlM3N40Ld3qS_FrUV2aAgZS7s1tZwkGDjVx9ZrjEkXL2b64w5sewgoY4rBmNeCG00)
 
-含义如下图：
 
-![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1I27ODKJ2eS7DJC5G8YGnm1L865OO6N61Pe2geUYi5HsTlJCtkg9enTGK5O3NT8JKl1UWQ0000)
+
+##### 异常流程
+
+1. 模组：RPT ATTACH 没有收到ACK导致定时器Timer0超时，回到1.RPT ATTACH
+2. 模组：切换到CHANNELx后没有收到RPT PING导致定时器Timer1超时，回到1.RPT ATTACH
+3. 网关：RPT PING 没有收到ACK 导致定时器Timer2超时重复RPT PING ， 如果Timer2超时3次，停止PING心跳。
+
+### 业务模式
+
+##### 查询
+
+###### 正常流程
+
+![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1ICDHJS7SDKN1pT5Omu0AB0UMWggmKWW8WKYOAIhwUVe5AcFgD8FfTWWDmwGT9uTPl3D4V71w6Ipz8ob31eCB0aCiXDIy5w0i0)  
+
+###### 异常流程
+
+网关：GET 没有收到RPT导致定时器Timer2超时重复  GET， 如果Timer2超时3次，停止GET。
+
+##### 设置
+
+以RGBCW控制器为例
+
+###### 正常流程
+
+![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1ICDHJ27ODKJ2eC39NC5K82FSr11568C8OH9WeUFfpWTK2zK1rMoa0WQEpDwPfHdeAxZ3J3B1g2meWP9b3QbuAqAa0)
+
+###### 异常流程
+
+网关：SET 没有收到ACK导致定时器Timer2超时重复  SET， 如果Timer2超时3次，停止SET。
+
+##### 
+
+
 
 其他设备类型
 
