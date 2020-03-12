@@ -10,6 +10,7 @@
 | 0.8 | 修改参数格式增加业务参数 |
 | 0.9 | 简化业务载合格式 |
 | 0.91 | 刷新了交互章节 |
+| 0.92 | 地址ID长度改为8字节，修正交互错误 |
 
 ## 简介
 
@@ -76,15 +77,15 @@
 
 业务载荷格式如下表：
 
-| 源设备ID | 目的设备ID | 数据           |
-| -------- | ---------- | -------------- |
-| SRC[4]   | DST[4]     | DATA[242]      |
-| 4字节    | 4字节      | 变长 250-8字节 |
+| 源设备ID | 目的设备ID | 数据            |
+| -------- | ---------- | --------------- |
+| SRC[8]   | DST[8]     | DATA[234]       |
+| 8字节    | 8字节      | 变长 250-16字节 |
 
 说明：
 
 3. 设备ID 是IOT设备的唯一标识，要求设备在用一个接入网中必须保证唯一。
-4. 当设备ID为 FFFFFFFF 时表示广播。
+4. 当设备ID为 FFFFFFFFFFFFFFFF 时表示广播。
 
 
 
@@ -402,7 +403,7 @@
 
 ###### 正常流程
 
-![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1ICDHJ27ODKJ2eC39NC5K82FSr11568C8OH9WeUFfpWTK2zK1rMoa0WQEpDwPfHdeAxZ3J3B1g2meWP9b3QbuAqAa0)
+![](https://www.plantuml.com/plantuml/img/SoWkIImgAStDuGfEBIfBBLBGjLFmoqz9LR1ICDHJ27ODKN1n3VDqTbKmKp2eC39N20ZtDGGHHY3264IOA7ZwSu6r0BL23R5I0097PszCGutq5DmHXXg23SMgEoY0IAiTKlDIWEu70000)
 
 ###### 异常流程
 
